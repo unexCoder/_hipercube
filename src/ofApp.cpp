@@ -16,7 +16,6 @@ void ofApp::setup(){
     back = colors[numPaleta][0];penA = colors[numPaleta][1];
     backRefresh = true;fill = true;
     
-
     glEnable(GL_DEPTH_TEST);
     ofBackground(back);
     cam.setFarClip(150000.f);
@@ -25,6 +24,14 @@ void ofApp::setup(){
     hypercubo.setup();
     shader.load("shaders/vostok.vert","shaders/vostok.frag",
                 "shaders/vostok.geom");
+    
+    screenMode = 0;
+
+    // screen buffer
+    fbo.allocate(ofGetWidth(),ofGetHeight(),GL_RGB8,4096);
+
+    /////// video-rec
+    //mainFrame.allocate(1920,1080,GL_RGB);
 }
 
 //--------------------------------------------------------------
@@ -37,10 +44,15 @@ void ofApp::update(){
     ribbonWidth = modDepth*rms;
 
     lightDir = glm::vec3(sin(ofGetElapsedTimef()/10.f), cos(ofGetElapsedTimef()/10.f), 0.f);
+    
+    screenSettings(screenMode);
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
+ 
+    // framebuffer write
+    fbo.begin();
     cam.begin();
     cam.setDistance(camZ);
     if (fill) {
@@ -48,9 +60,15 @@ void ofApp::draw(){
     } else {
         ofNoFill();
     }
-    
+    if (backRefresh) {
+        ofBackground(back);
+    }
     renderMode(mode,applyShader);
     cam.end();
+    fbo.end();
+    
+    // screen render
+    fbo.draw(0,0,ofGetWidth(),ofGetHeight());
 }
 
 //--------------------------------------------------------------
@@ -60,7 +78,6 @@ void ofApp::keyPressed(int key){
         case 'z':
             applyShader = !applyShader;
             break;
-
         case 'a':
             numShader++;numShader=numShader%2;
             switch (numShader) {
@@ -74,15 +91,13 @@ void ofApp::keyPressed(int key){
                     break;
             }
             break;
-
         case 'x':
             numPaleta = (numPaleta+1)%colors.size();
             back = colors[numPaleta][0];penA = colors[numPaleta][1];
-            ofSetBackgroundAuto(true);
+            backRefresh=true;
             ofBackground(back);
             hypercubo.setGlobalColor(penA);
             break;
-            
         case 'c':
             shiftColors = (shiftColors+1)%4;
             back = colors[numPaleta][shiftColors % colors[numPaleta].size()];
@@ -92,30 +107,21 @@ void ofApp::keyPressed(int key){
             ofBackground(back);
             hypercubo.setGlobalColor(penA);
             break;
-            
         case 'v':
             backRefresh = !backRefresh;
-            if (backRefresh) {
-                ofSetBackgroundAuto(true);
-            } else {
-                ofSetBackgroundAuto(false);
-            }
             break;
         case 'm':
             mode++;mode=mode%5;
             break;
-        case 'n': fill = !fill;
+        case 'n':
+            fill = !fill;
             break;
-    /*
-     if (key == 'a') {
-        const auto P = colors.size();
-        cout << "paletas: " << P << endl;
-        for (int i = 0; i < P; i++) {
-            const auto C = colors[i].size();
-            cout << "colores: " << i <<":" << C << endl;
-        }
-    }
-     */
+        case 'b':
+            screenMode++;screenMode=screenMode%2;
+            break;
+        case 's':
+            ofSaveScreen(to_string(ofGetFrameNum())+"out.png");
+            break;
     }
 }
 
@@ -224,12 +230,11 @@ void ofApp::renderMode(int mode, bool shaderOn){
         shader.setUniform1f("thickness", ribbonWidth);
         shader.setUniform3f("lightDir", lightDir);
     }
-
+    
     ofPushMatrix();
     ofTranslate(0,0,zPos);
     
     ofScale(scale);
-    
     
     ofRotateRad(rotX, 1.0f, 0.0f, 0.0f);
     ofRotateRad(rotY, 0.0f, 1.0f, 0.0f);
@@ -272,4 +277,17 @@ void ofApp::renderMode(int mode, bool shaderOn){
     
     ofPopMatrix();
     if (shaderOn) {shader.end();}
+}
+//--------------------------------------------------------------
+
+void ofApp::screenSettings(int settings) {
+    switch (settings) {
+        case 1:
+            rotY=PI/4;
+            rotX=ofGetElapsedTimef();
+            break;
+            
+        default:
+            break;
+    }
 }

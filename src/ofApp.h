@@ -28,6 +28,7 @@ public:
     
     void oscImput();
     void renderMode(int mode, bool shaderOn);
+    void screenSettings(int settings);
     
     ofxOscReceiver receiver;
     float peak,rms;
@@ -55,6 +56,9 @@ public:
     
     bool applyShader;
     int numShader;
-    int mode;
+    int mode,screenMode;
+    
+    ofTexture mainFrame;
+    ofFbo fbo;
 };
 
